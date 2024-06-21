@@ -1,9 +1,24 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"products/controller"
+	"products/db"
+	"products/repository"
+	"products/usecase"
+)
 
 func main() {
 	server := gin.Default()
+
+	dbConn, err := db.ConnectDB()
+	if err != nil {
+		panic(err)
+	}
+
+	ProductRepo := repository.NewProductRepository(dbConn)
+	ProductUseCase := usecase.NewProductUsecase(ProductRepo)
+	ProductControler := controller.NewProductController(ProductUseCase)
 
 	server.GET("ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -11,8 +26,9 @@ func main() {
 		})
 	})
 
-	err := server.Run(":8080")
-	if err != nil {
-		return
-	}
+	server.GET("/products", ProductControler.GetProductList)
+	server.POST("/product", ProductControler.CreateProduct)
+	server.GET("/product/{id}", ProductControler.GetProduct)
+
+	server.Run(":8080")
 }
